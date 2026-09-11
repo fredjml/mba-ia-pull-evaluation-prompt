@@ -348,16 +348,30 @@ Dashboard: https://smith.langchain.com/projects/bug-to-user-story-desafio2 (aval
 
 **Aprovado na 1ª iteração** (`python src/evaluate.py`, provider Gemini, `gemini-3.6-flash` para responder e avaliar):
 
-| Métrica | v1 (baixa qualidade, ilustrativo do enunciado) | v2 (otimizado, real) | Status |
+| Métrica | v1 (`leonanluppi/bug_to_user_story_v1`, medido de verdade) | v2 (`fredjml/bug_to_user_story_v2`, otimizado) | Status v2 |
 | --- | --- | --- | --- |
-| Helpfulness | 0.45 | **0.99** | ✅ |
-| Correctness | 0.52 | **0.91** | ✅ |
-| F1-Score | 0.48 | **0.84** | ✅ |
-| Clarity | 0.50 | **0.99** | ✅ |
-| Precision | 0.46 | **0.99** | ✅ |
-| **Média geral** | ~0.48 | **0.9436** | ✅ APROVADO |
+| Helpfulness | 0.99 | **0.99** | ✅ |
+| Correctness | 0.97 | **0.91** | ✅ |
+| F1-Score | 0.94 | **0.84** | ✅ |
+| Clarity | 0.99 | **0.99** | ✅ |
+| Precision | 0.99 | **0.99** | ✅ |
+| **Média geral** | **0.9774** | **0.9436** | ✅ APROVADO |
 
 Todas as 5 métricas ficaram acima de 0.8 já na primeira avaliação — não foram necessárias as iterações de correção previstas no requisito 4 (o prompt otimizado na Fase 2 já atendeu ao critério de aprovação).
+
+> **Observação honesta**: diferente do exemplo ilustrativo do enunciado (onde o v1 reprova com métricas ~0.45–0.52), o v1 real avaliado com `gemini-3.6-flash` já saiu acima de 0.8 em tudo — inclusive levemente acima do v2 na medição bruta. A hipótese mais provável é que `gemini-3.6-flash` é um modelo forte o suficiente para compensar um prompt mal estruturado (sem persona, sem few-shot, sem CoT), reduzindo o efeito visível da engenharia de prompt nesta métrica automatizada. Isso não invalida as técnicas aplicadas no v2 (few-shot, Chain of Thought, role prompting continuam sendo boas práticas documentadas e exigidas pelo desafio), apenas mostra que o ganho relativo depende do modelo usado — com um modelo mais fraco (como no exemplo do enunciado), a diferença v1→v2 tende a ser muito mais dramática.
+
+### Evidências (LangSmith)
+
+![Dataset com 15 exemplos](docs/screenshots/01-dataset-15-exemplos.png)
+
+![Avaliação - métricas](docs/screenshots/02-avaliacao-metricas.png)
+
+**Tracing detalhado (3 exemplos, com input/output completos, custo e latência):**
+
+![Tracing exemplo 1](docs/screenshots/03-tracing-exemplo-3.png)
+![Tracing exemplo 2](docs/screenshots/04-tracing-exemplo-4.png)
+![Tracing exemplo 3](docs/screenshots/05-tracing-exemplo-5.png)
 
 ## Como Executar
 
