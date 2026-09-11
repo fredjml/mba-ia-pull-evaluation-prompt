@@ -304,3 +304,82 @@ C) Seção "Como Executar":
 - Não altere os datasets de avaliação - apenas os prompts em prompts/bug_to_user_story_v2.yml
 - Itere, itere, itere - é normal precisar de 3-5 iterações para atingir 0.8 em todas as métricas
 - Documente seu processo - a jornada de otimização é tão importante quanto o resultado final
+
+---
+
+# Minha documentação do processo (entregável)
+
+> A partir daqui, conteúdo próprio do autor deste fork — documentando o processo de otimização exigido no "Entregável" acima. Planejamento detalhado (fases, tasks, decisões de ferramental de IA) em `docs/preparacao-desafio2/` na raiz do workspace.
+
+## Técnicas Aplicadas (Fase 2)
+
+Prompt otimizado em [`prompts/bug_to_user_story_v2.yml`](prompts/bug_to_user_story_v2.yml), a partir do diagnóstico do `v1.yml` puxado do LangSmith Prompt Hub (`leonanluppi/bug_to_user_story_v1`).
+
+### Diagnóstico do v1 (problemas encontrados)
+
+- Sem persona/role definida ("um assistente que ajuda a transformar...").
+- `{bug_report}` duplicado no `system_prompt` e no `user_prompt`.
+- Nenhum exemplo de entrada/saída (zero few-shot).
+- Nenhum formato de saída exigido (nem Markdown, nem estrutura de User Story).
+- Nenhuma instrução de raciocínio — pede a resposta final direto.
+- Nenhum tratamento para bug incompleto/ambíguo.
+
+### Técnicas escolhidas e por quê
+
+| Técnica | Por que foi escolhida | Como foi aplicada |
+| --- | --- | --- |
+| **Role Prompting** | O v1 não define persona; um "Product Manager sênior" ancora tom, critério de qualidade e vocabulário (INVEST, Critérios de Aceitação) esperados de uma User Story real. | Primeira linha do `system_prompt`: `"Você é um Product Manager sênior, especialista em..."`. |
+| **Few-shot Learning (obrigatório)** | É a técnica com maior impacto reportado nas "Dicas Finais" do próprio enunciado; sem exemplo, o modelo não sabe o nível de detalhe/formato esperado. | 2 exemplos completos no `system_prompt`: um bug simples e bem descrito, e um bug incompleto/ambíguo — este último ensina o modelo a lidar com informação faltante (reforça o requisito de edge cases). |
+| **Chain of Thought (CoT)** | Bugs médios/complexos do dataset (`datasets/bug_to_user_story.jsonl`) exigem decompor causa, ator e impacto antes de redigir a história — pular direto para a resposta tende a gerar critérios genéricos. | Seção obrigatória `### Raciocínio` (ator, dor, esperado vs. atual, lacunas) que **precede** a seção `### User Story` na saída. |
+
+Não copiamos nenhum exemplo literal do `datasets/bug_to_user_story.jsonl` nos few-shot do prompt — os 2 exemplos usados são inéditos, para não enviesar a avaliação (que roda contra esse mesmo dataset).
+
+### Outros requisitos do prompt otimizado (checklist do enunciado)
+
+- ✅ Instruções claras e específicas — seção "Regras de comportamento".
+- ✅ Regras explícitas de comportamento — 4 regras numeradas no `system_prompt`.
+- ✅ Few-shot obrigatório — 2 exemplos completos (ver acima).
+- ✅ Tratamento de edge cases — bug incompleto/ambíguo, idioma diferente, e tentativa de "prompt injection" via texto do bug (regra explícita para ignorar instruções embutidas no relato).
+- ✅ System vs. User Prompt adequados — `system_prompt` carrega persona/regras/formato/exemplos (estável); `user_prompt` carrega apenas o dado variável (`{bug_report}`), sem duplicação.
+
+## Resultados Finais
+
+Dashboard: https://smith.langchain.com/projects/bug-to-user-story-desafio2 (avaliações do dataset `bug-to-user-story-desafio2-eval`, 15 exemplos).
+
+**Aprovado na 1ª iteração** (`python src/evaluate.py`, provider Gemini, `gemini-3.6-flash` para responder e avaliar):
+
+| Métrica | v1 (baixa qualidade, ilustrativo do enunciado) | v2 (otimizado, real) | Status |
+| --- | --- | --- | --- |
+| Helpfulness | 0.45 | **0.99** | ✅ |
+| Correctness | 0.52 | **0.91** | ✅ |
+| F1-Score | 0.48 | **0.84** | ✅ |
+| Clarity | 0.50 | **0.99** | ✅ |
+| Precision | 0.46 | **0.99** | ✅ |
+| **Média geral** | ~0.48 | **0.9436** | ✅ APROVADO |
+
+Todas as 5 métricas ficaram acima de 0.8 já na primeira avaliação — não foram necessárias as iterações de correção previstas no requisito 4 (o prompt otimizado na Fase 2 já atendeu ao critério de aprovação).
+
+## Como Executar
+
+Pré-requisitos: Python 3.9+, uma `venv` e as credenciais em `.env` (ver `.env.example`).
+
+```powershell
+# 1. Ambiente
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# 2. Pull do prompt inicial (v1)
+python src/pull_prompts.py
+
+# 3. Editar prompts/bug_to_user_story_v2.yml (já feito neste fork)
+
+# 4. Push do prompt otimizado (v2)
+python src/push_prompts.py
+
+# 5. Avaliação
+python src/evaluate.py
+
+# 6. Testes de validação estrutural (offline, não chama API)
+pytest tests/test_prompts.py -v
+```
